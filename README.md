@@ -105,9 +105,9 @@ Focused on clean code, UX/UI consistency, scalability, and maintainable architec
 
 ## 📸 Screenshots / Demo
 
-![Home Page_Header](../src/assets/images/screenshots/homepage-header.png)                                                 
-![Home Center](../src/assets/images/screenshots/homepage-center.png)                                                      
-![Home Page_Footer](../src/assets/images/screenshots/homepage-footer.png)
+![Home Page_Header](./frontend/src/assets/images/screenshots/homepage-header.png)                                                 
+![Home Center](./frontend/src/assets/images/screenshots/homepage-center.png)                                                      
+![Home Page_Footer](./frontend/src/assets/images/screenshots/homepage-footer.png)
 
 Watch a short demonstration of the app:
 
