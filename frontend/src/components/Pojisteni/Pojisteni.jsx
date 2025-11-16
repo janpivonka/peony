@@ -1,19 +1,22 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { pojisteniData } from "./pojisteniData";
 import PojisteniCard from "./PojisteniCard";
+import { useNavigation } from "../../hooks/useNavigation";
 import "./PojisteniBase.css";
 import "./PojisteniEffects.css";
 
 export default function Pojisteni() {
-  const navigate = useNavigate();
-  const handleCardClick = (slug) => navigate(`/pojisteni/detail/${slug}`);
-  const handleLearnMore = () => navigate("/pojisteni/detail");
+  const { goTo } = useNavigation();
+
+  const handleCardClick = (slug) => goTo(`/pojisteni/detail/${slug}`);
+  const handleLearnMore = () => goTo("/pojisteni/detail");
 
   return (
     <section id="pojisteni" className="section">
       <div className="content pojisteni-content">
-        <h2 onClick={handleLearnMore}>Druhy pojištění</h2>
+        <h2 onClick={handleLearnMore}>
+          Druhy pojištění
+        </h2>
       </div>
 
       <div className="container pojisteni-container">
@@ -27,9 +30,10 @@ export default function Pojisteni() {
       </div>
 
       <div className="learn-more pojisteni-learn-more">
-        <a onClick={handleLearnMore}>Zjistit více →</a>
+        <a onClick={handleLearnMore}>
+          Zjistit více →
+        </a>
       </div>
     </section>
   );
 }
-

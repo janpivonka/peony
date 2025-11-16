@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { useHero } from "./useHeroBackground";
-import { useNavigate } from "react-router-dom";
+import { useNavigation } from "../../hooks/useNavigation";
 import { useScrollTo } from "../../functions/useScrollTo";
 import "./HeroBase.css";
 import "./HeroEffects.css";
 
 const Hero = () => {
   const { currentImage, nextImage, prevImage } = useHero();
-  const navigate = useNavigate();
+  const { goTo } = useNavigation();
   const scrollTo = useScrollTo();
 
   const images = [
@@ -18,7 +17,7 @@ const Hero = () => {
 
   const heroButtons = [
     { text: "Zjistit více", action: () => scrollTo("pojisteni"), type: "primary" },
-    { text: "Přihlásit se", action: () => navigate("/profil"), type: "secondary" },
+    { text: "Přihlásit se", action: () => goTo("/login"), type: "secondary" },
   ];
 
   return (

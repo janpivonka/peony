@@ -1,18 +1,21 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import Aktualita from "./Aktualita";
 import { aktualityData } from "./aktualityData";
+import { useNavigation } from "../../hooks/useNavigation";
 import "./AktualityBase.css";
 import "./AktualityEffects.css";
 
 export default function Aktuality() {
-  const navigate = useNavigate();
+  const { goTo } = useNavigation();
 
   return (
     <section className="section aktuality-section">
-        <div className="content">
-            <h2 onClick={() => navigate("/aktuality/detail")}>Aktuality</h2>
-        </div>
+      <div className="content">
+        <h2 onClick={() => goTo("/aktuality/detail")}>
+          Aktuality
+        </h2>
+      </div>
+
       <div className="aktuality-container">
         {aktualityData.slice(0, 7).map((item) => (
           <Aktualita key={item.id} {...item} />
@@ -20,7 +23,9 @@ export default function Aktuality() {
 
         {aktualityData.length > 7 && (
           <div className="learn-more">
-            <a onClick={() => navigate("/aktuality/detail")}>Číst dále...</a>
+            <a onClick={() => goTo("/aktuality/detail")}>
+              Číst dále...
+            </a>
           </div>
         )}
       </div>

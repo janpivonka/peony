@@ -25,6 +25,6 @@ export const headerData = [
 
 export const headerIcons = [
   { id: 1, icon: "🔍", action: "toggleSearch" },
-  { id: 2, icon: "👤", path: "/profil" },
+  { id: 2, icon: "👤", path: "/login" },
 ];
 

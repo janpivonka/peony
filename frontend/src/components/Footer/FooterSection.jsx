@@ -6,7 +6,7 @@ export default function FooterSection({ title, items, onItemClick, type, classNa
 
   return (
     <div className={className}>
-      {title && <h3 className="footer-title link">{title}</h3>}
+      {title && <h3 className="footer-title">{title}</h3>}
       {renderItems(items, type === "social")}
     </div>
   );

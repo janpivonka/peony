@@ -111,7 +111,7 @@ Focused on clean code, UX/UI consistency, scalability, and maintainable architec
 
 Watch a short demonstration of the app:
 
-🔗 [View video on Google Drive](https://drive.google.com/file/d/14wtGU6_F5fbKiaYERCLbkXTviUjDv3pH/view?usp=sharing) 
+🔗 [Video Tour](https://drive.google.com/file/d/14wtGU6_F5fbKiaYERCLbkXTviUjDv3pH/view?usp=sharing) 
 
 ---
 

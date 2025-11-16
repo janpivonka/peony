@@ -1,16 +1,20 @@
 import React, { useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigation } from "../../hooks/useNavigation";
 import { handleCardMouseMove, handleCardMouseLeave } from "./aktualitaEffects";
 
 export default function Aktualita({ slug, image, title, description }) {
-  const navigate = useNavigate();
+  const { goTo } = useNavigation();
   const cardRef = useRef(null);
+
+  const handleClick = () => {
+    goTo(`/aktuality/detail/${slug}`);
+  };
 
   return (
     <section
       ref={cardRef}
       className="card aktualita-card"
-      onClick={() => navigate(`/aktuality/detail/${slug}`)}
+      onClick={handleClick}
       onMouseMove={(e) => handleCardMouseMove(cardRef, e)}
       onMouseLeave={() => handleCardMouseLeave(cardRef)}
     >

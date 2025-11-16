@@ -24,6 +24,7 @@ import PojisteniDetail from "../pages/PojisteniDetail/PojisteniDetail";
 import HlaseniSkody from "../pages/HlaseniSkody/HlaseniSkody";
 import Gdpr from "../pages/GDPR/GDPR";
 import Podminky from "../pages/Podminky/Podminky";
+import Login from "../pages/Auth/Login";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -48,6 +49,7 @@ const AnimatedRoutes = () => {
       <Route path="/hlaseni-skody" element={<HlaseniSkody />} />
       <Route path="/podminky" element={<Podminky />} />
       <Route path="/gdpr" element={<Gdpr />} />
+      <Route path="/login" element={<Login />} />
     </Routes>
   );
 };

@@ -1,14 +1,14 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigation } from "../../hooks/useNavigation";
 import "./CTAbase.css";
 import "./CTAeffects.css";
 
 export default function CTA() {
-  const navigate = useNavigate();
+  const { goTo } = useNavigation();
 
   return (
     <section className="section">
-      <article className="content cta-content" onClick={() => navigate("/pojisteni/detail")}>
+      <article className="content cta-content" onClick={() => goTo("/pojisteni/detail")}>
         <h2>Chraňte sebe i svůj majetek ještě dnes</h2>
         <p>Získejte jistotu díky našemu komplexnímu pojištění.</p>
         <button className="button cta-button">
