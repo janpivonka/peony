@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useHeader } from "./useHeader";
 import HeaderSection from "./HeaderSection";
 import MobileMenu from "./MobileMenu";
+import logo from "../../assets/images/logo.png"
 
 import "./HeaderBase.css";
 import "./HeaderEffects.css";
@@ -30,18 +31,13 @@ export default function Header() {
 
   return (
     <header className="header-section">
-      <div
-        className="logo"
-        onClick={() => handleClick({ path: "/" })}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleClick({ path: "/" });
-        }}
-        aria-label="Domů"
-      >
-        <img src="LOGO_PATH" alt="Logo" />
-      </div>
+      <div className="brand" onClick={() => handleClick({ path: "/" })}>
+          <img src={logo} alt="Logo" className="brand-logo" />
+          <div className="brand-text">
+            <span className="brand-name">Jan Pivoňka</span>
+            <span className="brand-sub">Web Development</span>
+          </div>
+        </div>
 
       {/* Hamburger (only mobile) */}
       {isMobile && (

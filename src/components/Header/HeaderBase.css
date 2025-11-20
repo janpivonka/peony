@@ -138,3 +138,87 @@ header nav ul li.desktop:hover > ul.submenu {
     display: none !important;
   }
 }
+
+     /* ====== BRAND WRAPPER ====== */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity 0.25s ease;
+}
+
+.brand:hover {
+  opacity: 1;
+}
+
+/* ====== LOGO ====== */
+.brand-logo {
+  height: 48px;       /* stejné jako header */
+  width: auto;
+  opacity: 0.88;
+  filter: brightness(0.85);
+  transition: all 0.4s ease;
+}
+
+.brand:hover .brand-logo {
+  opacity: 1;
+  filter: brightness(1);
+  transform: scale(1.1);
+}
+
+/* ====== TEXT ====== */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+  position: relative;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.brand-name::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #ff8c42;
+  transition: width 0.25s ease;
+}
+
+.brand-sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+/* Hover efekty brandu (text + logo) */
+.brand:hover .brand-name {
+  color: #ffffff;
+  transform: translateY(-1px);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.brand:hover .brand-name::after {
+  width: 100%;
+}
+
+.brand:hover .brand-sub {
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
