@@ -1,5 +1,5 @@
 import { useNavigation } from "../../hooks/useNavigation";
-import { headerData as menuData } from "./headerData";
+import { headerData } from "./headerData";
 
 export function useHeader() {
   const { goTo, getCurrentPath } = useNavigation();
@@ -24,5 +24,5 @@ export function useHeader() {
     }
   };
 
-  return { menuData, handleClick };
+  return { headerData, handleClick };
 }
