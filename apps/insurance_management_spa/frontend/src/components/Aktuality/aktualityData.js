@@ -1,0 +1,58 @@
+export const aktualityData = [
+  {
+    id: 1,
+    slug: "aktualita-1",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 1",
+    description: "Krátký popis aktuality 1",
+  },
+  {
+    id: 2,
+    slug: "aktualita-2",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 2",
+    description: "Krátký popis aktuality 2",
+  },
+  {
+    id: 3,
+    slug: "aktualita-3",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 3",
+    description: "Krátký popis aktuality 3",
+  },
+  {
+    id: 4,
+    slug: "aktualita-4",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 4",
+    description: "Krátký popis aktuality 4",
+  },
+  {
+    id: 5,
+    slug: "aktualita-5",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 5",
+    description: "Krátký popis aktuality 5",
+  },
+  {
+    id: 6,
+    slug: "aktualita-6",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 6",
+    description: "Krátký popis aktuality 6",
+  },
+  {
+    id: 7,
+    slug: "aktualita-7",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 7",
+    description: "Krátký popis aktuality 7",
+  },
+  {
+    id: 8,
+    slug: "aktualita-8",
+    image: "/images/insurance1.jpg",
+    title: "Aktualita 8",
+    description: "Krátký popis aktuality 8",
+  },
+];

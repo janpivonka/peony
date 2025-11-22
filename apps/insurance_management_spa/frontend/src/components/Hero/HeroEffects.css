@@ -1,0 +1,22 @@
+.btn-primary:hover {
+  background: linear-gradient(145deg, #00e5ff, #00bcd4, #0097a7);
+}
+
+.btn-secondary:hover {
+  color: #0f2027;
+  transform: scale(1.05);
+  background: linear-gradient(145deg, #00bcd4, #0097a7, #006a75);
+}
+
+.arrow {
+  background: radial-gradient(rgba(70, 70, 70, 1) 0%, rgba(70, 70, 70, 1) 75%, rgba(40, 40, 40, 1) 100%);
+  box-shadow: 0 0 12px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.arrow:hover {
+  transform: translateY(-50%) scale(1.07);
+  background: radial-gradient(rgba(85, 85, 85, 1) 0%, rgba(85, 85, 85, 1) 75%, rgba(45, 45, 45, 1) 100%);
+  box-shadow: 0 0 16px rgba(0,0,0,0.7), inset 0 3px 6px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.4);
+  background: linear-gradient(145deg, #fff, #FFD700, #C6A300, #FFD700, #fff);
+}

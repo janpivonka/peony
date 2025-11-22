@@ -1,0 +1,67 @@
+.assistant {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+}
+
+.assistant:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 15px rgba(196,69,63,0.8);
+}
+
+.assistant-modal-header {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.assistant-modal-content.open .assistant-modal-header {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.assistant-min-btn, .assistant-close-btn {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.assistant-min-btn:hover, .assistant-close-btn:hover {
+  color: #ffbaba;
+  transform: scale(1.15);
+}
+
+.assistant-modal-footer button {
+  transition: background-position 0.4s ease, box-shadow 0.3s ease;
+}
+
+.assistant-modal-footer button:hover {
+  background-position: 100% 0;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.35);
+}
+
+.assistant-modal-content {
+  transform: scale(0);
+  opacity: 0;
+  transition: all 0.35s ease;
+}
+
+.assistant-modal-content.open {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.assistant-modal-content.minimized .assistant-modal-body, .assistant-modal-content.minimized .assistant-modal-footer {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.message-bubble {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: bubbleFade 0.4s forwards;
+}
+
+@keyframes bubbleFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
