@@ -1,0 +1,95 @@
+/* src/components/Menu.css */
+.menu {
+  position: relative;
+  font-family: sans-serif;
+}
+
+/* Hamburger */
+.hamburger {
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: block; /* mobile-first */
+  padding: 0.5rem;
+}
+
+/* Menu list */
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: none; /* skryté na mobilu */
+}
+
+.menu-list.open {
+  display: block;
+}
+
+.menu-item {
+  border-bottom: 1px solid #ddd;
+}
+
+.menu-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.menu-link a {
+  text-decoration: none;
+  color: #333;
+}
+
+.arrow {
+  transition: transform 0.3s ease;
+}
+
+.arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Submenu */
+.submenu {
+  list-style: none;
+  padding-left: 1rem;
+  display: none;
+}
+
+.submenu.open {
+  display: block;
+}
+
+/* Desktop version */
+@media (min-width: 768px) {
+  .hamburger {
+    display: none;
+  }
+
+  .menu-list {
+    display: flex !important;
+  }
+
+  .menu-item {
+    border: none;
+    position: relative;
+  }
+
+  .submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    display: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  .menu-item:hover > .submenu {
+    display: block;
+  }
+
+  .submenu .submenu {
+    left: 100%;
+    top: 0;
+  }
+}
