@@ -1,0 +1,92 @@
+.header-section {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: linear-gradient(rgba(15, 32, 39, 0.7), rgba(32, 58, 67, 0.7), rgba(44, 83, 100, 0.7));
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  font-size: 1.1rem;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.2rem;
+  cursor: default;
+}
+
+.main-menu {
+  list-style: none;
+  display: flex;
+  gap: 1.75rem;
+  margin: 0;
+  padding-right: 7rem;
+  align-items: center;
+}
+
+.main-menu li {
+  position: relative;
+  padding: 0 1rem;
+  cursor: pointer;
+  transition: color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
+}
+
+.menu-link {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.has-submenu > .menu-link::after {
+  content: "▼";
+  font-size: 0.6rem;
+  margin-left: 6px;
+  opacity: 0.9;
+}
+
+.submenu-has-submenu > .menu-link::after {
+  content: "▶";
+  margin-left: 6px;
+  font-size: 0.5em;
+}
+
+.first-submenu {
+  top: 100%;
+  left: 0;
+  background: radial-gradient(circle at top left, rgb(58, 90, 105) 40%, rgb(32, 58, 67) 75%, rgb(15, 32, 39) 100%);
+  transform: translateY(-6px);
+}
+
+.second-submenu {
+  top: 0;
+  left: 100%;
+  background: radial-gradient(circle at top left, rgb(65, 100, 120) 40%, rgb(38, 66, 85) 75%, rgb(20, 38, 48) 100%);
+  transform: translateX(-6px);
+}
+
+.first-submenu, .second-submenu {
+  position: absolute;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.first-submenu li, .second-submenu li {
+  list-style: none;
+  padding: 0.55rem 0.9rem;
+  color: white;
+  white-space: nowrap;
+  border-radius: 8px;
+}
+
+.header-icons {
+  gap: 2rem;
+}

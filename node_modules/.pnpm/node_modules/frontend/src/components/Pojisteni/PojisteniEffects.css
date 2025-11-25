@@ -1,0 +1,23 @@
+.pojisteni-card {
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.pojisteni-card:hover {
+  transform: translateY(-5px);
+}
+
+.pojisteni-icons span {
+  transition: transform 0.25s ease;
+}
+
+.pojisteni-icons span:hover {
+  transform: scale(1.2);
+}
+
+.pojisteni-title {
+  transition: color 0.4s ease;
+}
+
+.pojisteni-title:hover {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.2), 0 0 4px rgba(0,0,0,0.3);
+}

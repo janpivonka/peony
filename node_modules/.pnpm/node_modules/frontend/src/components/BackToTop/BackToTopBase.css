@@ -1,0 +1,13 @@
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  background: #ff8c42;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+

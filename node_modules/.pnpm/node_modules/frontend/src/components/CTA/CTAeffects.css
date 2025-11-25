@@ -1,0 +1,13 @@
+.cta-content {
+  transition: all 0.2s ease;
+}
+
+.cta-content:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.cta-button:hover {
+  background: #0097a7;
+  transform: scale(1.05);
+}
