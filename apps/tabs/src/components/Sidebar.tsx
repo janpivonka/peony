@@ -107,3 +107,4 @@ export function Sidebar({ tables, currentId, onSelect, onSelectDb, onCreate, onR
     </aside>
   );
 }
+

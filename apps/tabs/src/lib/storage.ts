@@ -26,3 +26,4 @@ export function saveTables(tables: TableData[]) {
     console.error("Chyba při ukládání tabulek do localStorage:", e);
   }
 }
+

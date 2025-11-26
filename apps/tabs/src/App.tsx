@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TableEditor } from "./components/TableEditor";
@@ -6,30 +7,45 @@ import { v4 as uuid } from "uuid";
 
 const API_URL = "http://localhost:4000/tables";
 
+interface TableAction {
+  id: string;
+  timestamp: number;
+  tableId: string;
+  type: "cell" | "row_add" | "row_delete" | "col_add" | "col_delete" | "rename";
+  description: string;
+  snapshot: TableData;
+}
+
 export default function App() {
   const [tables, setTables] = useState<TableData[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [history, setHistory] = useState<TableAction[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
-  // ===== Načtení tabulek z DB + localStorage =====
+  // Načtení tabulek z DB + localStorage
   useEffect(() => {
     const local = JSON.parse(localStorage.getItem("peony_tables") || "[]") as TableData[];
-
     fetch(API_URL)
       .then(res => res.json())
       .then((dbTablesRaw: any[]) => {
         const dbTables = dbTablesRaw
           .map(d => d.data ? { ...d.data, id: d.id } : null)
           .filter(Boolean) as TableData[];
-
-        // merge: local tables + DB tables (bez duplikátů podle id)
         const merged = [...local];
         dbTables.forEach(dbT => {
           if (!merged.find(t => t.id === dbT.id)) merged.push(dbT);
         });
-
         setTables(merged);
       })
       .catch(() => setTables(local));
+  }, []);
+
+  // Načtení historie z localStorage
+  useEffect(() => {
+    const storedHistory = JSON.parse(localStorage.getItem("peony_history") || "[]") as TableAction[];
+    setHistory(storedHistory);
+    setHistoryIndex(storedHistory.length - 1);
   }, []);
 
   const saveLocal = (tables: TableData[]) =>
@@ -37,14 +53,48 @@ export default function App() {
 
   const update = (newTables: TableData[]) => {
     setTables(newTables);
-    saveLocal(newTables);
+    saveLocal(newTables.filter(t => t.id.startsWith("tmp_")));
   };
 
-  // ===== CREATE =====
+  // Přidání akce do historie
+  const pushHistory = (table: TableData, type: TableAction["type"], description: string) => {
+    const action: TableAction = {
+      id: uuid(),
+      timestamp: Date.now(),
+      tableId: table.id,
+      type,
+      description,
+      snapshot: JSON.parse(JSON.stringify(table)),
+    };
+
+    const newHistory = [action, ...history.slice(0, historyIndex + 1)]; // nejnovější nahoře
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    localStorage.setItem("peony_history", JSON.stringify(newHistory));
+  };
+
+  const undo = () => {
+    if (historyIndex < 0) return;
+    const prevIndex = historyIndex - 1;
+    const action = history[historyIndex];
+    if (!action) return;
+
+    setTables(tables.map(t => t.id === action.tableId ? action.snapshot : t));
+    setHistoryIndex(prevIndex);
+  };
+
+  const redo = () => {
+    if (historyIndex + 1 >= history.length) return;
+    const nextIndex = historyIndex + 1;
+    const action = history[nextIndex];
+    if (!action) return;
+
+    setTables(tables.map(t => t.id === action.tableId ? action.snapshot : t));
+    setHistoryIndex(nextIndex);
+  };
+
   const handleCreate = () => {
     const baseName = "Nová tabulka";
-
-    // najít první volný název
     let name = baseName;
     let counter = 2;
     while (tables.find(t => t.name.toLowerCase() === name.toLowerCase())) {
@@ -55,185 +105,78 @@ export default function App() {
     const newTable: TableData = {
       id: "tmp_" + uuid(),
       name,
-      columns: ["ID", "col1", "col2", "col3"],
+      columns: ["ID", "name", "col2", "col3"],
       rows: Array(4)
         .fill(null)
         .map((_, r) => ["1", "", "", ""].map((c, i) => (i === 0 ? String(r + 1) : c))),
     };
 
-    // nová tabulka vždy nahoře
     const newTables = [newTable, ...tables];
     update(newTables);
-    setCurrentId(newTable.id); // automaticky otevřít
+    setCurrentId(newTable.id);
+    pushHistory(newTable, "row_add", `Vytvoření nové tabulky "${name}"`);
   };
 
-  // ===== UPDATE LOCAL =====
-  const handleChangeTable = (updated: TableData) =>
+  const handleChangeTable = (updated: TableData, description?: string) => {
+    if (description) pushHistory(updated, "cell", description);
     update(tables.map(t => (t.id === updated.id ? updated : t)));
-
-  const handleSaveTable = async (table: TableData) => {
-    if (!confirm(`Opravdu uložit tabulku "${table.name}"?`)) return;
-
-    const isLocal = table.id.startsWith("tmp_");
-    const payload = { name: table.name, data: table };
-
-    try {
-      const res = await fetch(`${API_URL}${isLocal ? "" : "/" + table.id}`, {
-        method: isLocal ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const saved = await res.json();
-
-      if (!res.ok) throw new Error("Chyba při ukládání");
-
-      // ===== Po uložení =====
-      // 1) stáhnout aktuální DB tabulky
-      const dbRes = await fetch(API_URL);
-      const dbData: any[] = await dbRes.json();
-      const dbTables: TableData[] = dbData
-        .map(d => d.data ? { ...d.data, id: d.id } : null)
-        .filter(Boolean) as TableData[];
-
-      // 2) odstranit klon z localStorage
-      const remainingLocal = tables.filter(t => !(t.id === table.id && isLocal));
-
-      // 3) sloučit
-      const merged = [...remainingLocal.filter(t => t.id.startsWith("tmp_")), ...dbTables];
-
-      setTables(merged);
-      saveLocal(merged.filter(t => t.id.startsWith("tmp_"))); // pouze localStorage tabulky
-
-      alert("✅ Tabulka byla uložena a přesunuta do DB");
-      setCurrentId(saved.id); // přepnout na novou DB tabulku
-    } catch (err: any) {
-      alert("❌ Nelze se připojit: " + err.message);
-    }
   };
 
-  const handleSaveAll = async () => {
-    if (!confirm("Opravdu uložit všechny tabulky?")) return;
-
-    try {
-      await Promise.all(
-        tables.map(t => {
-          const isLocal = t.id.startsWith("tmp_");
-          return fetch(`${API_URL}${isLocal ? "" : "/" + t.id}`, {
-            method: isLocal ? "POST" : "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: t.name, data: t }),
-          });
-        })
-      );
-
-      const dbRes = await fetch(API_URL);
-      const dbData: any[] = await dbRes.json();
-      const dbTables: TableData[] = dbData
-        .map(d => d.data ? { ...d.data, id: d.id } : null)
-        .filter(Boolean) as TableData[];
-
-      const remainingLocal = tables.filter(t => t.id.startsWith("tmp_") && !dbTables.find(db => db.name === t.name));
-
-      const merged = [...remainingLocal, ...dbTables];
-
-      setTables(merged);
-      saveLocal(merged.filter(t => t.id.startsWith("tmp_")));
-
-      alert("✅ Všechny tabulky uloženy a přesunuty do DB");
-    } catch (err: any) {
-      alert("❌ Chyba při ukládání: " + err.message);
-    }
-  };
-
-  // ===== DELETE =====
-  const handleDelete = (id: string) => {
-    const isLocal = id.startsWith("tmp_");
-    if (!confirm("Opravdu smazat tabulku?")) return;
-
-    if (isLocal) {
-      update(tables.filter(t => t.id !== id));
-    } else {
-      fetch(`${API_URL}/${id}`, { method: "DELETE" })
-        .then(() => update(tables.filter(t => t.id !== id)))
-        .catch(e => alert("❌ Nelze se připojit: " + e.message));
-    }
-  };
-
-  // ===== RENAME =====
   const handleRename = (id: string, newNameInput: string) => {
     const baseName = newNameInput.trim();
     if (!baseName) return;
-
     const existingNames = tables.filter(t => t.id !== id).map(t => t.name);
-
     let finalName = baseName;
     let counter = 2;
     while (existingNames.includes(finalName)) {
       finalName = `${baseName}_${counter}`;
       counter++;
     }
-
-    update(tables.map(t => (t.id === id ? { ...t, name: finalName } : t)));
-  };
-
-  // ===== EXPORT =====
-  const handleExport = (table: TableData) => {
-    const blob = new Blob([JSON.stringify(table, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = table.name + ".json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ===== PASTE =====
-  const handlePaste = (table: TableData) => {
-    table.id = "tmp_" + uuid();
-    const newTables = [table, ...tables];
-    update(newTables);
-    setCurrentId(table.id);
-  };
-
-  // ===== CLICK NA DB TABULKU =====
-  const handleSelectDbTable = (table: TableData) => {
-    const existingClone = tables.find(t => t.id.startsWith("tmp_") && t.name === table.name);
-
-    if (existingClone) {
-      setCurrentId(existingClone.id);
-    } else {
-      const newClone: TableData = { ...table, id: "tmp_" + uuid() };
-      update([newClone, ...tables]);
-      setCurrentId(newClone.id);
-    }
+    const updatedTables = tables.map(t => t.id === id ? { ...t, name: finalName } : t);
+    update(updatedTables);
+    const table = updatedTables.find(t => t.id === id);
+    if (table) pushHistory(table, "rename", `Přejmenování tabulky na "${finalName}"`);
   };
 
   const currentTable = tables.find(t => t.id === currentId) || null;
 
   return (
-    <div className="flex">
+    <div className="flex w-full h-screen">
       <Sidebar
         tables={tables}
         currentId={currentId}
         onSelect={setCurrentId}
-        onSelectDb={handleSelectDbTable}
         onCreate={handleCreate}
         onRename={handleRename}
-        onDelete={handleDelete}
-        onPaste={handlePaste}
-        onSaveAll={handleSaveAll}
-        onSaveTable={handleSaveTable}
+        onDelete={(id) => update(tables.filter(t => t.id !== id))}
       />
 
-      {currentTable && (
-        <TableEditor
-          table={currentTable}
-          onUpdate={handleChangeTable}
-          onSave={() => handleSaveTable(currentTable)}
-          onExport={() => handleExport(currentTable)}
-        />
-      )}
+      <div className="flex-1 flex flex-col">
+        <div className="p-2 flex gap-2 border-b">
+          <button onClick={undo} className="px-3 py-1 bg-gray-200 rounded">↩ Undo</button>
+          <button onClick={redo} className="px-3 py-1 bg-gray-200 rounded">↪ Redo</button>
+          <button onClick={() => setHistoryVisible(!historyVisible)} className="px-3 py-1 bg-gray-300 rounded">📜 Historie</button>
+        </div>
+
+        {historyVisible && (
+          <div className="p-2 border-b max-h-40 overflow-y-auto text-sm">
+            {history.map((h, idx) => (
+              <div key={h.id} className="border-b py-1">
+                {new Date(h.timestamp).toLocaleTimeString()} - {h.description}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {currentTable && (
+          <TableEditor
+            table={currentTable}
+            onUpdate={handleChangeTable}
+            onSave={() => alert("Ukládání zatím deaktivováno")}
+            onExport={() => alert("Export zatím deaktivováno")}
+          />
+        )}
+      </div>
     </div>
   );
 }
