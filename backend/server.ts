@@ -64,13 +64,23 @@ app.put("/tables/:id", async (req, res) => {
   if (!name || !data) return res.status(400).json({ error: "Missing name or data" });
 
   try {
-    const updated = await prisma.tableEntity.update({
-      where: { id },
-      data: { name, data },
-    });
-    res.json({ ok: true, updatedId: updated.id });
+    const existing = await prisma.tableEntity.findUnique({ where: { id } });
+    let record;
+    if (existing) {
+      // Pokud existuje, aktualizuj
+      record = await prisma.tableEntity.update({
+        where: { id },
+        data: { name, data },
+      });
+    } else {
+      // Pokud neexistuje, vytvoř nový záznam
+      record = await prisma.tableEntity.create({
+        data: { name, data },
+      });
+    }
+    res.json({ ok: true, id: record.id });
   } catch (err) {
-    console.error("Chyba při aktualizaci tabulky:", err);
+    console.error("Chyba při ukládání nebo aktualizaci tabulky:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -79,6 +89,10 @@ app.put("/tables/:id", async (req, res) => {
 app.delete("/tables/:id", async (req, res) => {
   const { id } = req.params;
   try {
+    const existing = await prisma.tableEntity.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ ok: false, message: "Záznam neexistuje" });
+    }
     await prisma.tableEntity.delete({ where: { id } });
     res.json({ ok: true });
   } catch (err) {

@@ -11,32 +11,26 @@ export default function App() {
   const [currentId, setCurrentId] = useState<string | null>(null);
 
   // ===== Načtení tabulek z DB + localStorage =====
-    useEffect(() => {
-      const local = JSON.parse(localStorage.getItem("peony_tables") || "[]") as TableData[];
-      console.log("Local storage při startu:", local);
+  useEffect(() => {
+    const local = JSON.parse(localStorage.getItem("peony_tables") || "[]") as TableData[];
 
-      fetch(API_URL)
-        .then(res => res.json())
-        .then((dbTables: any[]) => {
-          console.log("Data z backendu:", dbTables);  // ← ZDE SE DÍVÁME
-          const converted = dbTables
-            .map(d => d.data ? { ...d.data, id: d.id } : null)
-            .filter(Boolean) as TableData[];
-          console.log("Převedené tabulky:", converted); // ← ZDE SE DÍVÁME
+    fetch(API_URL)
+      .then(res => res.json())
+      .then((dbTablesRaw: any[]) => {
+        const dbTables = dbTablesRaw
+          .map(d => d.data ? { ...d.data, id: d.id } : null)
+          .filter(Boolean) as TableData[];
 
-          const merged = [...local];
-          converted.forEach(dbT => {
-            if (!merged.find(t => t.id === dbT.id)) merged.push(dbT);
-          });
-
-          console.log("Tabulky po merge:", merged); // ← ZDE SE DÍVÁME
-          setTables(merged);
-        })
-        .catch(err => {
-          console.error("Chyba při fetch:", err);
-          setTables(local);
+        // merge: local tables + DB tables (bez duplikátů podle id)
+        const merged = [...local];
+        dbTables.forEach(dbT => {
+          if (!merged.find(t => t.id === dbT.id)) merged.push(dbT);
         });
-    }, []);
+
+        setTables(merged);
+      })
+      .catch(() => setTables(local));
+  }, []);
 
   const saveLocal = (tables: TableData[]) =>
     localStorage.setItem("peony_tables", JSON.stringify(tables));
@@ -48,8 +42,15 @@ export default function App() {
 
   // ===== CREATE =====
   const handleCreate = () => {
-    const name = prompt("Název tabulky:");
-    if (!name) return;
+    const baseName = "Nová tabulka";
+
+    // najít první volný název
+    let name = baseName;
+    let counter = 2;
+    while (tables.find(t => t.name.toLowerCase() === name.toLowerCase())) {
+      name = `${baseName}_${counter}`;
+      counter++;
+    }
 
     const newTable: TableData = {
       id: "tmp_" + uuid(),
@@ -60,69 +61,121 @@ export default function App() {
         .map((_, r) => ["1", "", "", ""].map((c, i) => (i === 0 ? String(r + 1) : c))),
     };
 
-    update([...tables, newTable]);
-    setCurrentId(newTable.id);
+    // nová tabulka vždy nahoře
+    const newTables = [newTable, ...tables];
+    update(newTables);
+    setCurrentId(newTable.id); // automaticky otevřít
   };
 
   // ===== UPDATE LOCAL =====
   const handleChangeTable = (updated: TableData) =>
     update(tables.map(t => (t.id === updated.id ? updated : t)));
 
-  // ===== SAVE ONE TABLE =====
-  const handleSaveTable = (table: TableData) => {
+  const handleSaveTable = async (table: TableData) => {
     if (!confirm(`Opravdu uložit tabulku "${table.name}"?`)) return;
 
+    const isLocal = table.id.startsWith("tmp_");
     const payload = { name: table.name, data: table };
-    const isNew = table.id.startsWith("tmp_");
 
-    fetch(`${API_URL}${isNew ? "" : "/" + table.id}`, {
-      method: isNew ? "POST" : "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-      .then(res => res.json())
-      .then(saved => {
-        if (isNew && saved.id) {
-          handleChangeTable({ ...table, id: saved.id });
-        }
-        alert("✅ Tabulka byla uložena");
-      })
-      .catch(err => alert("❌ Nelze se připojit: " + err.message));
+    try {
+      const res = await fetch(`${API_URL}${isLocal ? "" : "/" + table.id}`, {
+        method: isLocal ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const saved = await res.json();
+
+      if (!res.ok) throw new Error("Chyba při ukládání");
+
+      // ===== Po uložení =====
+      // 1) stáhnout aktuální DB tabulky
+      const dbRes = await fetch(API_URL);
+      const dbData: any[] = await dbRes.json();
+      const dbTables: TableData[] = dbData
+        .map(d => d.data ? { ...d.data, id: d.id } : null)
+        .filter(Boolean) as TableData[];
+
+      // 2) odstranit klon z localStorage
+      const remainingLocal = tables.filter(t => !(t.id === table.id && isLocal));
+
+      // 3) sloučit
+      const merged = [...remainingLocal.filter(t => t.id.startsWith("tmp_")), ...dbTables];
+
+      setTables(merged);
+      saveLocal(merged.filter(t => t.id.startsWith("tmp_"))); // pouze localStorage tabulky
+
+      alert("✅ Tabulka byla uložena a přesunuta do DB");
+      setCurrentId(saved.id); // přepnout na novou DB tabulku
+    } catch (err: any) {
+      alert("❌ Nelze se připojit: " + err.message);
+    }
   };
 
-  // ===== SAVE ALL =====
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     if (!confirm("Opravdu uložit všechny tabulky?")) return;
 
-    Promise.all(
-      tables.map(t => {
-        const isNew = t.id.startsWith("tmp_");
-        return fetch(`${API_URL}${isNew ? "" : "/" + t.id}`, {
-          method: isNew ? "POST" : "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: t.name, data: t }),
-        });
-      })
-    )
-      .then(res => {
-        if (res.every(r => r.ok)) alert("✅ Vše uloženo");
-        else alert("❌ Některé tabulky se nepodařilo uložit");
-      })
-      .catch(e => alert("❌ Chyba připojení: " + e.message));
+    try {
+      await Promise.all(
+        tables.map(t => {
+          const isLocal = t.id.startsWith("tmp_");
+          return fetch(`${API_URL}${isLocal ? "" : "/" + t.id}`, {
+            method: isLocal ? "POST" : "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: t.name, data: t }),
+          });
+        })
+      );
+
+      const dbRes = await fetch(API_URL);
+      const dbData: any[] = await dbRes.json();
+      const dbTables: TableData[] = dbData
+        .map(d => d.data ? { ...d.data, id: d.id } : null)
+        .filter(Boolean) as TableData[];
+
+      const remainingLocal = tables.filter(t => t.id.startsWith("tmp_") && !dbTables.find(db => db.name === t.name));
+
+      const merged = [...remainingLocal, ...dbTables];
+
+      setTables(merged);
+      saveLocal(merged.filter(t => t.id.startsWith("tmp_")));
+
+      alert("✅ Všechny tabulky uloženy a přesunuty do DB");
+    } catch (err: any) {
+      alert("❌ Chyba při ukládání: " + err.message);
+    }
   };
 
   // ===== DELETE =====
   const handleDelete = (id: string) => {
+    const isLocal = id.startsWith("tmp_");
     if (!confirm("Opravdu smazat tabulku?")) return;
 
-    fetch(`${API_URL}/${id}`, { method: "DELETE" })
-      .then(() => update(tables.filter(t => t.id !== id)))
-      .catch(e => alert("❌ Nelze se připojit: " + e.message));
+    if (isLocal) {
+      update(tables.filter(t => t.id !== id));
+    } else {
+      fetch(`${API_URL}/${id}`, { method: "DELETE" })
+        .then(() => update(tables.filter(t => t.id !== id)))
+        .catch(e => alert("❌ Nelze se připojit: " + e.message));
+    }
   };
 
   // ===== RENAME =====
-  const handleRename = (id: string, newName: string) =>
-    update(tables.map(t => (t.id === id ? { ...t, name: newName } : t)));
+  const handleRename = (id: string, newNameInput: string) => {
+    const baseName = newNameInput.trim();
+    if (!baseName) return;
+
+    const existingNames = tables.filter(t => t.id !== id).map(t => t.name);
+
+    let finalName = baseName;
+    let counter = 2;
+    while (existingNames.includes(finalName)) {
+      finalName = `${baseName}_${counter}`;
+      counter++;
+    }
+
+    update(tables.map(t => (t.id === id ? { ...t, name: finalName } : t)));
+  };
 
   // ===== EXPORT =====
   const handleExport = (table: TableData) => {
@@ -137,9 +190,23 @@ export default function App() {
 
   // ===== PASTE =====
   const handlePaste = (table: TableData) => {
-    table.id = "tmp_" + uuid(); // vždy nové ID
-    update([...tables, table]);
+    table.id = "tmp_" + uuid();
+    const newTables = [table, ...tables];
+    update(newTables);
     setCurrentId(table.id);
+  };
+
+  // ===== CLICK NA DB TABULKU =====
+  const handleSelectDbTable = (table: TableData) => {
+    const existingClone = tables.find(t => t.id.startsWith("tmp_") && t.name === table.name);
+
+    if (existingClone) {
+      setCurrentId(existingClone.id);
+    } else {
+      const newClone: TableData = { ...table, id: "tmp_" + uuid() };
+      update([newClone, ...tables]);
+      setCurrentId(newClone.id);
+    }
   };
 
   const currentTable = tables.find(t => t.id === currentId) || null;
@@ -150,6 +217,7 @@ export default function App() {
         tables={tables}
         currentId={currentId}
         onSelect={setCurrentId}
+        onSelectDb={handleSelectDbTable}
         onCreate={handleCreate}
         onRename={handleRename}
         onDelete={handleDelete}
