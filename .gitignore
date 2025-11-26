@@ -1,0 +1,70 @@
+##############################
+# Global Monorepo .gitignore #
+##############################
+
+########## Node / PNPM ##########
+
+# Ignore all node_modules everywhere
+**/node_modules/
+
+# PNPM store
+**/.pnpm-store/
+
+########## Build outputs ##########
+
+# Common build folders
+**/dist/
+**/dist-ssr/
+**/build/
+**/.output/
+**/.next/
+**/.nuxt/
+**/out/
+
+# Vite / SPA / Tailwind caches
+**/.vite/
+**/.cache/
+
+########## Environment ##########
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+
+########## Logs ##########
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+lerna-debug.log*
+
+########## Prisma ##########
+**/prisma/*.db
+**/prisma/migrations/
+**/prisma/generated/
+
+########## Package managers ##########
+package-lock.json
+yarn.lock
+.pnp.*
+.pnp.js
+
+########## Editor files ##########
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+########## Misc ##########
+*.local
+*.orig
+*.bak
+*.tmp
