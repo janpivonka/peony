@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TableEditor } from "./components/TableEditor";
 import type { TableData } from "./lib/storage";
@@ -22,6 +22,8 @@ export default function App() {
   const [history, setHistory] = useState<TableAction[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [historyVisible, setHistoryVisible] = useState(false);
+
+  const historyContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Načtení tabulek z DB + localStorage
   useEffect(() => {
@@ -51,9 +53,9 @@ export default function App() {
   const saveLocal = (tables: TableData[]) =>
     localStorage.setItem("peony_tables", JSON.stringify(tables));
 
-  const update = (newTables: TableData[]) => {
+  const updateTables = (newTables: TableData[]) => {
     setTables(newTables);
-    saveLocal(newTables.filter(t => t.id.startsWith("tmp_")));
+    saveLocal(newTables);
   };
 
   // Přidání akce do historie
@@ -67,31 +69,39 @@ export default function App() {
       snapshot: JSON.parse(JSON.stringify(table)),
     };
 
-    const newHistory = [action, ...history.slice(0, historyIndex + 1)]; // nejnovější nahoře
+    // Odstranit budoucí redo kroky, pokud nejsme na konci
+    const newHistory = [...history.slice(0, historyIndex + 1), action];
+
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     localStorage.setItem("peony_history", JSON.stringify(newHistory));
   };
 
-  const undo = () => {
-    if (historyIndex < 0) return;
-    const prevIndex = historyIndex - 1;
-    const action = history[historyIndex];
-    if (!action) return;
+const undo = () => {
+  if (historyIndex < 0) return;
+  const prevIndex = historyIndex - 1;
+  const actionToApply = prevIndex >= 0 ? history[prevIndex] : null;
 
-    setTables(tables.map(t => t.id === action.tableId ? action.snapshot : t));
-    setHistoryIndex(prevIndex);
-  };
+  if (actionToApply) {
+    setTables(tables.map(t => t.id === actionToApply.tableId ? actionToApply.snapshot : t));
+  } else {
+    // žádný předchozí krok, můžeme nechat tabulku nezměněnou
+  }
 
-  const redo = () => {
-    if (historyIndex + 1 >= history.length) return;
-    const nextIndex = historyIndex + 1;
-    const action = history[nextIndex];
-    if (!action) return;
+  setHistoryIndex(prevIndex);
+};
 
-    setTables(tables.map(t => t.id === action.tableId ? action.snapshot : t));
-    setHistoryIndex(nextIndex);
-  };
+const redo = () => {
+  if (historyIndex + 1 >= history.length) return;
+  const nextIndex = historyIndex + 1;
+  const actionToApply = history[nextIndex];
+
+  if (actionToApply) {
+    setTables(tables.map(t => t.id === actionToApply.tableId ? actionToApply.snapshot : t));
+  }
+
+  setHistoryIndex(nextIndex);
+};
 
   const handleCreate = () => {
     const baseName = "Nová tabulka";
@@ -112,14 +122,14 @@ export default function App() {
     };
 
     const newTables = [newTable, ...tables];
-    update(newTables);
+    updateTables(newTables);
     setCurrentId(newTable.id);
     pushHistory(newTable, "row_add", `Vytvoření nové tabulky "${name}"`);
   };
 
   const handleChangeTable = (updated: TableData, description?: string) => {
     if (description) pushHistory(updated, "cell", description);
-    update(tables.map(t => (t.id === updated.id ? updated : t)));
+    updateTables(tables.map(t => (t.id === updated.id ? updated : t)));
   };
 
   const handleRename = (id: string, newNameInput: string) => {
@@ -133,12 +143,23 @@ export default function App() {
       counter++;
     }
     const updatedTables = tables.map(t => t.id === id ? { ...t, name: finalName } : t);
-    update(updatedTables);
+    updateTables(updatedTables);
     const table = updatedTables.find(t => t.id === id);
     if (table) pushHistory(table, "rename", `Přejmenování tabulky na "${finalName}"`);
   };
 
   const currentTable = tables.find(t => t.id === currentId) || null;
+
+  // Scroll na aktuální krok historie
+  useEffect(() => {
+    if (historyVisible && historyContainerRef.current) {
+      const container = historyContainerRef.current;
+      const children = Array.from(container.children) as HTMLElement[];
+      const idx = history.length - 1 - historyIndex; // reverzní pořadí
+      const el = children[idx];
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [historyIndex, historyVisible, history.length]);
 
   return (
     <div className="flex w-full h-screen">
@@ -148,7 +169,7 @@ export default function App() {
         onSelect={setCurrentId}
         onCreate={handleCreate}
         onRename={handleRename}
-        onDelete={(id) => update(tables.filter(t => t.id !== id))}
+        onDelete={(id) => updateTables(tables.filter(t => t.id !== id))}
       />
 
       <div className="flex-1 flex flex-col">
@@ -159,12 +180,23 @@ export default function App() {
         </div>
 
         {historyVisible && (
-          <div className="p-2 border-b max-h-40 overflow-y-auto text-sm">
-            {history.map((h, idx) => (
-              <div key={h.id} className="border-b py-1">
-                {new Date(h.timestamp).toLocaleTimeString()} - {h.description}
-              </div>
-            ))}
+          <div
+            ref={historyContainerRef}
+            className="p-2 border-b max-h-40 overflow-y-auto text-sm flex flex-col"
+          >
+            {[...history].reverse().map((h, idx) => {
+              const realIdx = history.length - 1 - idx; // odpovídá historyIndex
+              const isCurrent = realIdx === historyIndex;
+              return (
+                <div
+                  key={h.id}
+                  className={`border-b py-1 ${isCurrent ? "bg-yellow-100" : ""}`}
+                  ref={isCurrent ? (el) => el && el.scrollIntoView({ behavior: "smooth", block: "center" }) : null}
+                >
+                  {new Date(h.timestamp).toLocaleTimeString()} - {h.description}
+                </div>
+              );
+            })}
           </div>
         )}
 
