@@ -11,7 +11,7 @@ interface TableAction {
   id: string;
   timestamp: number;
   tableId: string;
-  type: "cell" | "row_add" | "row_delete" | "col_add" | "col_delete" | "rename";
+  type: "cell" | "row_add" | "row_delete" | "rename";
   description: string;
   snapshot: TableData;
 }
@@ -22,10 +22,8 @@ export default function App() {
   const [history, setHistory] = useState<TableAction[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [historyVisible, setHistoryVisible] = useState(false);
-
   const historyContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Načtení tabulek z DB + localStorage
   useEffect(() => {
     const local = JSON.parse(localStorage.getItem("peony_tables") || "[]") as TableData[];
     fetch(API_URL)
@@ -43,64 +41,84 @@ export default function App() {
       .catch(() => setTables(local));
   }, []);
 
-  // Načtení historie z localStorage
-  useEffect(() => {
-    const storedHistory = JSON.parse(localStorage.getItem("peony_history") || "[]") as TableAction[];
-    setHistory(storedHistory);
-    setHistoryIndex(storedHistory.length - 1);
-  }, []);
+useEffect(() => {
+  const storedHistory = JSON.parse(localStorage.getItem("peony_history") || "[]") as TableAction[];
+  setHistory(storedHistory);
+  setHistoryIndex(-1); // start na -1 → žádná akce ještě není aplikována
+}, []);
 
-  const saveLocal = (tables: TableData[]) =>
-    localStorage.setItem("peony_tables", JSON.stringify(tables));
+  const saveLocal = (tables: TableData[]) => localStorage.setItem("peony_tables", JSON.stringify(tables));
 
   const updateTables = (newTables: TableData[]) => {
     setTables(newTables);
     saveLocal(newTables);
   };
 
-  // Přidání akce do historie
   const pushHistory = (table: TableData, type: TableAction["type"], description: string) => {
+    const snapshot = JSON.parse(JSON.stringify(table)); // deep copy
     const action: TableAction = {
       id: uuid(),
       timestamp: Date.now(),
       tableId: table.id,
       type,
       description,
-      snapshot: JSON.parse(JSON.stringify(table)),
+      snapshot
     };
-
-    // Odstranit budoucí redo kroky, pokud nejsme na konci
     const newHistory = [...history.slice(0, historyIndex + 1), action];
-
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     localStorage.setItem("peony_history", JSON.stringify(newHistory));
   };
 
 const undo = () => {
-  if (historyIndex < 0) return;
-  const prevIndex = historyIndex - 1;
-  const actionToApply = prevIndex >= 0 ? history[prevIndex] : null;
+  setHistoryIndex(prevIndex => {
+    if (prevIndex < 0) return prevIndex;
+    const action = history[prevIndex];
+    let newTables = [...tables];
 
-  if (actionToApply) {
-    setTables(tables.map(t => t.id === actionToApply.tableId ? actionToApply.snapshot : t));
-  } else {
-    // žádný předchozí krok, můžeme nechat tabulku nezměněnou
-  }
+    switch (action.type) {
+      case "row_add":
+        newTables = newTables.filter(t => t.id !== action.tableId);
+        break;
+      case "row_delete":
+      case "cell":
+      case "rename":
+        newTables = newTables.map(t => t.id === action.tableId ? action.snapshot : t);
+        if (!newTables.find(t => t.id === action.tableId)) {
+          newTables = [action.snapshot, ...newTables];
+        }
+        break;
+    }
 
-  setHistoryIndex(prevIndex);
+    setTables(newTables);
+    setCurrentId(action.tableId);
+    return prevIndex - 1;
+  });
 };
 
 const redo = () => {
-  if (historyIndex + 1 >= history.length) return;
-  const nextIndex = historyIndex + 1;
-  const actionToApply = history[nextIndex];
+  setHistoryIndex(prevIndex => {
+    if (prevIndex + 1 >= history.length) return prevIndex;
+    const action = history[prevIndex + 1];
+    let newTables = [...tables];
 
-  if (actionToApply) {
-    setTables(tables.map(t => t.id === actionToApply.tableId ? actionToApply.snapshot : t));
-  }
+    switch (action.type) {
+      case "row_add":
+        newTables = [action.snapshot, ...newTables];
+        break;
+      case "row_delete":
+        newTables = newTables.filter(t => t.id !== action.tableId);
+        break;
+      case "cell":
+      case "rename":
+        newTables = newTables.map(t => t.id === action.tableId ? action.snapshot : t);
+        break;
+    }
 
-  setHistoryIndex(nextIndex);
+    setTables(newTables);
+    setCurrentId(action.tableId);
+    return prevIndex + 1;
+  });
 };
 
   const handleCreate = () => {
@@ -121,41 +139,31 @@ const redo = () => {
         .map((_, r) => ["1", "", "", ""].map((c, i) => (i === 0 ? String(r + 1) : c))),
     };
 
-    const newTables = [newTable, ...tables];
-    updateTables(newTables);
-    setCurrentId(newTable.id);
     pushHistory(newTable, "row_add", `Vytvoření nové tabulky "${name}"`);
+    updateTables([newTable, ...tables]);
+    setCurrentId(newTable.id);
   };
 
   const handleChangeTable = (updated: TableData, description?: string) => {
-    if (description) pushHistory(updated, "cell", description);
+    const original = tables.find(t => t.id === updated.id);
+    if (original && description) pushHistory(original, "cell", description);
     updateTables(tables.map(t => (t.id === updated.id ? updated : t)));
   };
 
   const handleRename = (id: string, newNameInput: string) => {
-    const baseName = newNameInput.trim();
-    if (!baseName) return;
-    const existingNames = tables.filter(t => t.id !== id).map(t => t.name);
-    let finalName = baseName;
-    let counter = 2;
-    while (existingNames.includes(finalName)) {
-      finalName = `${baseName}_${counter}`;
-      counter++;
-    }
-    const updatedTables = tables.map(t => t.id === id ? { ...t, name: finalName } : t);
-    updateTables(updatedTables);
-    const table = updatedTables.find(t => t.id === id);
-    if (table) pushHistory(table, "rename", `Přejmenování tabulky na "${finalName}"`);
+    const table = tables.find(t => t.id === id);
+    if (!table) return;
+    pushHistory(table, "rename", `Přejmenování tabulky na "${newNameInput}"`);
+    updateTables(tables.map(t => t.id === id ? { ...t, name: newNameInput } : t));
   };
 
   const currentTable = tables.find(t => t.id === currentId) || null;
 
-  // Scroll na aktuální krok historie
   useEffect(() => {
     if (historyVisible && historyContainerRef.current) {
       const container = historyContainerRef.current;
       const children = Array.from(container.children) as HTMLElement[];
-      const idx = history.length - 1 - historyIndex; // reverzní pořadí
+      const idx = history.length - 1 - historyIndex;
       const el = children[idx];
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -169,7 +177,19 @@ const redo = () => {
         onSelect={setCurrentId}
         onCreate={handleCreate}
         onRename={handleRename}
-        onDelete={(id) => updateTables(tables.filter(t => t.id !== id))}
+        onDelete={(id) => {
+          const tableToDelete = tables.find(t => t.id === id);
+          if (!tableToDelete) return;
+          pushHistory(tableToDelete, "row_delete", `Smazání tabulky "${tableToDelete.name}"`);
+          updateTables(tables.filter(t => t.id !== id));
+          if (currentId === id) setCurrentId(null);
+        }}
+        onPaste={(newTable) => {
+          pushHistory(newTable, "row_add", `Vložení tabulky "${newTable.name}" z clipboardu`);
+          const newTables = [newTable, ...tables];
+          updateTables(newTables);
+          setCurrentId(newTable.id);
+        }}
       />
 
       <div className="flex-1 flex flex-col">
@@ -185,7 +205,7 @@ const redo = () => {
             className="p-2 border-b max-h-40 overflow-y-auto text-sm flex flex-col"
           >
             {[...history].reverse().map((h, idx) => {
-              const realIdx = history.length - 1 - idx; // odpovídá historyIndex
+              const realIdx = history.length - 1 - idx;
               const isCurrent = realIdx === historyIndex;
               return (
                 <div
