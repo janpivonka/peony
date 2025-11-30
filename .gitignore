@@ -68,3 +68,6 @@ Thumbs.db
 *.orig
 *.bak
 *.tmp
+
+# Cursor AI metadata
+.cursor/
