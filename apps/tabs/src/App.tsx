@@ -23,6 +23,17 @@ export default function App() {
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [historyVisible, setHistoryVisible] = useState(false);
   const historyContainerRef = useRef<HTMLDivElement | null>(null);
+  const historyRef = useRef<TableAction[]>([]);
+  const historyIndexRef = useRef<number>(-1);
+  
+  // Aktualizujeme refy při změně stavů
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
+  
+  useEffect(() => {
+    historyIndexRef.current = historyIndex;
+  }, [historyIndex]);
 
   useEffect(() => {
     const local = JSON.parse(localStorage.getItem("peony_tables") || "[]") as TableData[];
@@ -44,7 +55,11 @@ export default function App() {
 useEffect(() => {
   const storedHistory = JSON.parse(localStorage.getItem("peony_history") || "[]") as TableAction[];
   setHistory(storedHistory);
-  setHistoryIndex(-1); // start na -1 → žádná akce ještě není aplikována
+  historyRef.current = storedHistory;
+  // Nastavíme na poslední akci v historii, jako v prohlížeči
+  const lastIndex = storedHistory.length > 0 ? storedHistory.length - 1 : -1;
+  setHistoryIndex(lastIndex);
+  historyIndexRef.current = lastIndex;
 }, []);
 
   const saveLocal = (tables: TableData[]) => localStorage.setItem("peony_tables", JSON.stringify(tables));
@@ -64,60 +79,100 @@ useEffect(() => {
       description,
       snapshot
     };
-    const newHistory = [...history.slice(0, historyIndex + 1), action];
+    // Použijeme aktuální hodnoty z refů (jako v Chrome - lineární historie)
+    const currentHistory = historyRef.current;
+    const currentIndex = historyIndexRef.current;
+    // Odstraníme vše za aktuální pozicí a přidáme novou akci
+    const newHistory = [...currentHistory.slice(0, currentIndex + 1), action];
+    const newIndex = newHistory.length - 1;
     setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    historyRef.current = newHistory;
+    setHistoryIndex(newIndex);
+    historyIndexRef.current = newIndex;
     localStorage.setItem("peony_history", JSON.stringify(newHistory));
   };
 
 const undo = () => {
   setHistoryIndex(prevIndex => {
     if (prevIndex < 0) return prevIndex;
-    const action = history[prevIndex];
-    let newTables = [...tables];
+    // Použijeme aktuální historii z refu
+    const currentHistory = historyRef.current;
+    const action = currentHistory[prevIndex];
+    
+    setTables(currentTables => {
+      let newTables = [...currentTables];
 
-    switch (action.type) {
-      case "row_add":
-        newTables = newTables.filter(t => t.id !== action.tableId);
-        break;
-      case "row_delete":
-      case "cell":
-      case "rename":
-        newTables = newTables.map(t => t.id === action.tableId ? action.snapshot : t);
-        if (!newTables.find(t => t.id === action.tableId)) {
-          newTables = [action.snapshot, ...newTables];
-        }
-        break;
-    }
+      switch (action.type) {
+        case "row_add":
+          newTables = newTables.filter(t => t.id !== action.tableId);
+          break;
+        case "row_delete":
+        case "cell":
+        case "rename":
+          // Pro undo použijeme snapshot z poslední akce pro stejnou tabulku před aktuální akcí
+          // Pokud není žádná předchozí akce pro tuto tabulku, použijeme snapshot z aktuální akce
+          let snapshotToUse = action.snapshot;
+          for (let i = prevIndex - 1; i >= 0; i--) {
+            if (currentHistory[i].tableId === action.tableId) {
+              snapshotToUse = currentHistory[i].snapshot;
+              break;
+            }
+          }
+          newTables = newTables.map(t => t.id === action.tableId ? snapshotToUse : t);
+          if (!newTables.find(t => t.id === action.tableId)) {
+            newTables = [snapshotToUse, ...newTables];
+          }
+          break;
+      }
 
-    setTables(newTables);
+      return newTables;
+    });
     setCurrentId(action.tableId);
-    return prevIndex - 1;
+    const newIndex = prevIndex - 1;
+    historyIndexRef.current = newIndex;
+    return newIndex;
   });
 };
 
 const redo = () => {
   setHistoryIndex(prevIndex => {
-    if (prevIndex + 1 >= history.length) return prevIndex;
-    const action = history[prevIndex + 1];
-    let newTables = [...tables];
+    // Jdeme lineárně dopředu v historii, jako v Chrome prohlížeči
+    const currentHistory = historyRef.current;
+    if (prevIndex + 1 >= currentHistory.length) return prevIndex;
+    
+    const action = currentHistory[prevIndex + 1];
+    
+    setTables(currentTables => {
+      let newTables = [...currentTables];
 
-    switch (action.type) {
-      case "row_add":
-        newTables = [action.snapshot, ...newTables];
-        break;
-      case "row_delete":
-        newTables = newTables.filter(t => t.id !== action.tableId);
-        break;
-      case "cell":
-      case "rename":
-        newTables = newTables.map(t => t.id === action.tableId ? action.snapshot : t);
-        break;
-    }
+      switch (action.type) {
+        case "row_add":
+          // Zkontrolujeme, jestli tabulka už neexistuje (aby se nezdvojila)
+          if (!newTables.find(t => t.id === action.tableId)) {
+            newTables = [action.snapshot, ...newTables];
+          }
+          break;
+        case "row_delete":
+          newTables = newTables.filter(t => t.id !== action.tableId);
+          break;
+        case "cell":
+        case "rename":
+          // Aplikujeme snapshot - buď aktualizujeme existující tabulku, nebo přidáme novou
+          const existingIndex = newTables.findIndex(t => t.id === action.tableId);
+          if (existingIndex >= 0) {
+            newTables[existingIndex] = action.snapshot;
+          } else {
+            newTables = [action.snapshot, ...newTables];
+          }
+          break;
+      }
 
-    setTables(newTables);
+      return newTables;
+    });
     setCurrentId(action.tableId);
-    return prevIndex + 1;
+    const newIndex = prevIndex + 1;
+    historyIndexRef.current = newIndex;
+    return newIndex;
   });
 };
 
@@ -146,8 +201,16 @@ const redo = () => {
 
   const handleChangeTable = (updated: TableData, description?: string) => {
     const original = tables.find(t => t.id === updated.id);
-    if (original && description) pushHistory(original, "cell", description);
-    updateTables(tables.map(t => (t.id === updated.id ? updated : t)));
+    if (original && description) {
+      // Nejdřív aktualizujeme tabulky
+      updateTables(tables.map(t => (t.id === updated.id ? updated : t)));
+      // Uložíme snapshot PO úpravě do historie
+      // Pro undo použijeme snapshot z předchozí akce (stav před úpravou)
+      // Pro redo použijeme snapshot z aktuální akce (stav po úpravě)
+      pushHistory(updated, "cell", description);
+    } else {
+      updateTables(tables.map(t => (t.id === updated.id ? updated : t)));
+    }
   };
 
   const handleRename = (id: string, newNameInput: string) => {
@@ -202,7 +265,7 @@ const redo = () => {
         {historyVisible && (
           <div
             ref={historyContainerRef}
-            className="p-2 border-b max-h-40 overflow-y-auto text-sm flex flex-col"
+            className="p-2 border-b max-h-40 overflow-y-auto text-sm flex flex-col bg-gray-50"
           >
             {[...history].reverse().map((h, idx) => {
               const realIdx = history.length - 1 - idx;
@@ -210,10 +273,15 @@ const redo = () => {
               return (
                 <div
                   key={h.id}
-                  className={`border-b py-1 ${isCurrent ? "bg-yellow-100" : ""}`}
+                  className={`px-2 py-1.5 rounded transition-colors ${
+                    isCurrent 
+                      ? "bg-blue-50 border-l-4 border-blue-400 text-blue-900 font-medium" 
+                      : "hover:bg-gray-100 text-gray-700"
+                  }`}
                   ref={isCurrent ? (el) => el && el.scrollIntoView({ behavior: "smooth", block: "center" }) : null}
                 >
-                  {new Date(h.timestamp).toLocaleTimeString()} - {h.description}
+                  <span className="text-xs text-gray-500 mr-2">{new Date(h.timestamp).toLocaleTimeString()}</span>
+                  <span>{h.description}</span>
                 </div>
               );
             })}
