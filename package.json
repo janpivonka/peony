@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "dev:backend": "ts-node backend/server.ts",
+    "dev:backend": "pnpm --filter @peony/backend dev",
     "dev:dev": "cross-env NODE_APP=apps/dev pnpm dev",
     "dev:tabs": "cross-env NODE_APP=apps/tabs pnpm dev",
     "dev:other": "cross-env NODE_APP=apps/other pnpm dev",
