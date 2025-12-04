@@ -3,18 +3,20 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "ts-node server.ts"
+    "dev": "ts-node server.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "@prisma/client": "^4.16.2",
     "cors": "^2.8.5",
-    "@prisma/client": "^4.16.2"
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "prisma": "^4.16.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "@types/express": "^5.0.5",
-    "@types/cors": "^2.8.19"
+    "typescript": "^5.9.3"
   }
 }

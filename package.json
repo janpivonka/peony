@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "vite",
+    "dev:backend": "pnpm --filter @peony/backend dev",
     "dev:tabs": "cross-env NODE_APP=apps/tabs pnpm dev",
     "dev:other": "cross-env NODE_APP=apps/other pnpm dev",
     "dev:insurance_spa": "cross-env NODE_APP=apps/insurance_spa pnpm dev"
