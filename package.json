@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite",
     "dev:tabs": "cross-env NODE_APP=apps/tabs pnpm dev",
-    "dev:other": "cross-env NODE_APP=apps/other pnpm dev"
+    "dev:other": "cross-env NODE_APP=apps/other pnpm dev",
+    "dev:insurance_spa": "cross-env NODE_APP=apps/insurance_spa pnpm dev"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",
@@ -23,6 +24,7 @@
     "vite": "^4.4.0"
   },
   "dependencies": {
+    "react-router-dom": "^7.9.6",
     "uuid": "^13.0.0"
   }
 }
