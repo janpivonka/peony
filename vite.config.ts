@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-// Default root bude "./apps/tabs", ale můžeme ho přepsat přes NODE_APP
 const appRoot = process.env.NODE_APP || "apps/tabs";
 
 export default defineConfig({
@@ -13,7 +12,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, `${appRoot}/src`)
+      "@": path.resolve(__dirname, `${appRoot}/src`),
+      "~": path.resolve(__dirname)
     }
   },
   css: {

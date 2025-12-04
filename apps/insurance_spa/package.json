@@ -1,7 +1,5 @@
 {
   "name": "@peony/insurance_spa",
   "version": "1.0.0",
-  "scripts": {
-    "dev": "vite"
-  }
+  "private": true
 }
